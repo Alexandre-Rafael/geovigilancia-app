@@ -1,16 +1,43 @@
 // app/index.tsx
 
-import React from 'react';
-import { View, Text } from 'react-native';
-import { Link } from 'expo-router';
+import React, { useEffect, useContext } from 'react';
+import { useRouter } from 'expo-router';
+import { AuthContext } from './context/AuthContext';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from './config/firebaseConfig';
 
-export default function HomeScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 24 }}>Tela Inicial</Text>
-      <Link href="/pagina/mapscreen">
-        <Text style={{ fontSize: 18, color: 'blue' }}>Ir para o Mapa</Text>
-      </Link>
-    </View>
-  );
+export default function Index() {
+  const router = useRouter();
+  const { user } = useContext(AuthContext);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      if (user) {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          const role = userData.role;
+
+          if (role === 'user') {
+            router.replace('/user/UserHome');
+          } else if (role === 'agent') {
+            router.replace('/agent/AgentHome');
+          } else {
+            router.replace('/auth/loginScreen');
+          }
+        } else {
+          console.log('Nenhum documento de usuário encontrado!');
+          router.replace('/auth/loginScreen');
+        }
+      } else {
+        router.replace('/auth/loginScreen');
+      }
+    };
+
+    checkUser();
+  }, [user]);
+
+  return null;
 }
