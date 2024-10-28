@@ -1,9 +1,13 @@
-// app/pagina/mapscreen.tsx
+// app/user/MapScreen.tsx
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TextInput, Button } from 'react-native';
+import { View, Text, StyleSheet, Modal, TextInput, Button, Alert } from 'react-native';
 import MapView, { MapPressEvent, Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { db } from '../config/firebaseConfig';
+import { collection, addDoc } from 'firebase/firestore';
+import { useNavigation } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 interface LocationCoords {
   latitude: number;
@@ -14,24 +18,43 @@ export default function MapScreen() {
   const [location, setLocation] = useState<LocationCoords | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Novo estado para o marcador e descrição
+  // Estado para o marcador e descrição
   const [markerCoords, setMarkerCoords] = useState<LocationCoords | null>(null);
   const [description, setDescription] = useState<string>('');
   const [modalVisible, setModalVisible] = useState<boolean>(false);
 
+  const navigation = useNavigation();
+
+  // Estilo de mapa personalizado para ocultar todos os elementos
+  const customMapStyle = [
+    {
+      elementType: 'geometry',
+      stylers: [{ visibility: 'off' }],
+    },
+    {
+      elementType: 'labels',
+      stylers: [{ visibility: 'off' }],
+    },
+  ];
+
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permissão para acessar a localização foi negada');
-        return;
-      }
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Permissão para acessar a localização foi negada');
+          return;
+        }
 
-      let currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      });
+        let currentLocation = await Location.getCurrentPositionAsync({});
+        setLocation({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+        });
+      } catch (error) {
+        console.error('Erro ao obter a localização:', error);
+        setErrorMsg('Não foi possível obter a localização');
+      }
     })();
   }, []);
 
@@ -52,20 +75,47 @@ export default function MapScreen() {
   };
 
   // Função para enviar os dados
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (markerCoords && description) {
-      // Aqui você pode enviar os dados para um servidor ou armazená-los
-      console.log('Coordenadas:', markerCoords);
-      console.log('Descrição:', description);
+      try {
+        // Salvar no Firestore
+        await addDoc(collection(db, 'reports'), {
+          latitude: markerCoords.latitude,
+          longitude: markerCoords.longitude,
+          description: description,
+          timestamp: new Date(),
+        });
 
-      // Fechar o modal e limpar a descrição
-      setModalVisible(false);
-      setDescription('');
+        Alert.alert('Sucesso', 'Sua denúncia foi enviada com sucesso!');
+
+        // Fechar o modal e limpar os campos
+        setModalVisible(false);
+        setMarkerCoords(null);
+        setDescription('');
+
+        // Navegar de volta para a tela inicial
+        navigation.goBack();
+      } catch (error) {
+        console.error('Erro ao enviar a denúncia:', error);
+        Alert.alert('Erro', 'Não foi possível enviar sua denúncia. Tente novamente.');
+      }
+    } else {
+      Alert.alert('Erro', 'Por favor, selecione um local e insira uma descrição.');
     }
+  };
+
+  // Função para voltar à tela anterior
+  const handleBack = () => {
+    navigation.goBack();
   };
 
   return (
     <View style={styles.container}>
+      {/* Botão de voltar */}
+      <View style={styles.backButtonContainer}>
+        <Ionicons name="arrow-back" size={32} onPress={handleBack} />
+      </View>
+
       <MapView
         style={styles.map}
         initialRegion={{
@@ -75,7 +125,8 @@ export default function MapScreen() {
           longitudeDelta: 0.00421,
         }}
         showsUserLocation={true}
-        onPress={handleMapPress} // Adicionar o listener de toque no mapa
+        onPress={handleMapPress}
+        customMapStyle={customMapStyle} // Aplicando o estilo personalizado
       >
         {markerCoords && (
           <Marker
@@ -146,5 +197,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginVertical: 10,
     paddingHorizontal: 10,
+  },
+  // Estilo para o botão de voltar
+  backButtonContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 10,
+    zIndex: 1,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 5,
   },
 });

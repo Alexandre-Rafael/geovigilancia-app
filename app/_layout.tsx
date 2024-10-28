@@ -14,6 +14,7 @@ export default function RootLayout() {
         <Stack.Screen name="user/UserHome" options={{ headerShown: false }} />
         <Stack.Screen name="user/MapScreen" options={{ headerShown: false }} />
         <Stack.Screen name="agent/AgentHome" options={{ headerShown: false }} />
+        <Stack.Screen name="agent/AgentMapScreen" options={{ headerShown: false }} />
       </Stack>
     </AuthProvider>
   );
