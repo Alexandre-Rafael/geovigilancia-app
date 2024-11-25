@@ -13,7 +13,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Este aplicativo precisa acessar a câmera para que você possa tirar fotos das denúncias.",
+        "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar suas fotos para que você possa selecionar imagens para as denúncias.",
+        "NSLocationWhenInUseUsageDescription": "O aplicativo precisa de acesso à sua localização para mostrar o mapa."
+
     },
     "android": {
       "adaptiveIcon": {
@@ -33,4 +38,4 @@
       "typedRoutes": true
     }
   }
-}
+}}

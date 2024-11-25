@@ -6,9 +6,10 @@ import { auth } from '../config/firebaseConfig';
 
 interface AuthContextProps {
   user: User | null;
+  loading: boolean;
 }
 
-export const AuthContext = createContext<AuthContextProps>({ user: null });
+export const AuthContext = createContext<AuthContextProps>({ user: null, loading: true });
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -16,10 +17,12 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (userAuth) => {
       setUser(userAuth);
+      setLoading(false);
     });
 
     return () => {
@@ -27,5 +30,5 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, []);
 
-  return <AuthContext.Provider value={{ user }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
 };
